@@ -36,6 +36,9 @@
 #let condition_shipped_remark = [N/A]
 */
 
+/* CHANNEL ARRAY EXAMPLE
+
+// The following array is an example of the parameter required to call the channel table creation function
 #let array1 = (
   "af I1 -90 av", 
   "af I1 -90 mv",
@@ -212,6 +215,7 @@
   "U factor", "U offset",
   "T factor", "T offset"
 )
+*/
 
 // END OF VARIABLES
 
@@ -494,5 +498,12 @@ Calibration is based on the procedure "#calibration_sop", dated #calibration_sop
   ],
 )
 
-#makechannel(00, array1)
-#makechannel(01, array1, lastChannel: true)
+/* EXAMPLE OF CHANNEL TABLE GENERATION FUNCTION CALL
+
+#makechannel(0, array1)
+#makechannel(1, array1, lastChannel: true)
+
+*/
+
+// Channel tables start here
+

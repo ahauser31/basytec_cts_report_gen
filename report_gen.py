@@ -271,7 +271,7 @@ class CTSChannel:
     def __init__(self, channelNumber):
         self.channelNumber = channelNumber
         self.records = {}
-        self.factors = []
+        self.factors = {}
         self.preOutOfSpec = set()
         self.postOutOfSpec = set()
     # end def
@@ -284,8 +284,8 @@ class CTSChannel:
             # end for
         # end if
 
-        for factor in self.factors:
-            res = res + 'Value: ' + factor['value'] + ' - Range: ' + factor['range'] + ' - Factor: ' + str(factor['factor']) + ' - Offset: ' + str(factor['offset']) + '\n'
+        for key, factor in self.factors:
+            res = res + 'Value: ' + key + ' - Range: ' + factor['range'] + ' - Factor: ' + str(factor['factor']) + ' - Offset: ' + str(factor['offset']) + '\n'
         # end for
         if len(self.factors) == 0:
             res = res + 'No calibration factors found for channel!\n'
@@ -325,43 +325,38 @@ class CTSChannel:
             rangeValue = rangeValue + 100
         # end if
 
-        self.records[rangeValue] = CalRecord(refValue, measValue, error, tolerance)
+        self.records[rangeValue] = CalRecord(refValue, measValue, error, tolerance, None)
     # end def
 
     def setFactors(self, i1Factors, i2Factors, i3Factors, i4Factors, uFactors, tFactors):
-        i1Factors['value'] = 'I1'
         i1Factors['range'] = '±1 mA'
-        i2Factors['value'] = 'I2'
         i2Factors['range'] = '±15 mA'
-        i3Factors['value'] = 'I3'
         i3Factors['range'] = '±300 mA'
-        i4Factors['value'] = 'I4'
         i4Factors['range'] = '±5 A'
-        uFactors['value'] = 'U'
         uFactors['range'] = '0 - 6 V'
-        tFactors['value'] = 'T'
         tFactors['range'] = '-30°C to 100°C'
 
-        self.factors.append(i1Factors)
-        self.factors.append(i2Factors)
-        self.factors.append(i3Factors)
-        self.factors.append(i4Factors)
-        self.factors.append(uFactors)
-        self.factors.append(tFactors)
+        self.factors['I1'] = i1Factors
+        self.factors['I2'] = i2Factors
+        self.factors['I3'] = i3Factors
+        self.factors['I4'] = i4Factors
+        self.factors['U'] = uFactors
+        self.factors['T'] = tFactors
     # end def
 # end class
 
 
 class CalRecord:
-    def __init__(self, refValue, measValue, error, tolerance):
+    def __init__(self, refValue, measValue, error, tolerance, uncertainty):
         self.refValue = refValue if refValue is not None else 0.0
-        self.measValue = measValue if refValue is not None else 0.0
-        self.error = error if refValue is not None else 0.0
-        self.tolerance = tolerance if refValue is not None else 0.0
+        self.measValue = measValue if measValue is not None else 0.0
+        self.error = error if error is not None else 0.0
+        self.tolerance = tolerance if tolerance is not None else 0.0
+        self.uncertainty = uncertainty if uncertainty is not None else 0.0
     # end def
 
     def __str__(self):
-        return 'Ref: ' + str(self.refValue) + ' Meas: ' + str(self.measValue) + ' Error: ' + str(self.error) + ' Tolerance: ' + str(self.tolerance)
+        return 'Ref: ' + str(self.refValue) + ' Meas: ' + str(self.measValue) + ' Error: ' + str(self.error) + ' Tolerance: ' + str(self.tolerance) + ' Uncertainty: ' + str(self.uncertainty)
     # end def
 # end class
 
@@ -572,6 +567,223 @@ def writeParameters(settings, cts, f):
     f.write('#let condition_received_remark = [' + ('N/A' if len(preOutOfSpec) == 0 else preOutOfSpec ) +']\n')
     f.write('#let condition_shipped_tolerance = [' + ('YES' if len(postOutOfSpec) == 0 else 'NO') + ']\n')
     f.write('#let condition_shipped_remark = [' + ('N/A' if len(postOutOfSpec) == 0 else postOutOfSpec ) +']\n')
+    f.write('\n')
+# end def
+
+def writeChannelArrays(settings, cts, f):
+    for key, channel in cts.channels.items():
+        f.write('#let array' + str(channel.channelNumber) + ' = (\n')
+
+        # I1
+        formatter = '"{:7.6f} mA",\n'
+        deviation = '"{:.4e} mA",\n'
+        f.write(formatter.format(channel.records[101].refValue))   # "af I1 -90 av", 
+        f.write(formatter.format(channel.records[101].measValue))  # "af I1 -90 mv",
+        f.write(deviation.format(channel.records[101].error))      # "af I1 -90 dv",
+        f.write(formatter.format(channel.records[1].refValue))     # "al I1 -90 av",
+        f.write(formatter.format(channel.records[1].measValue))    # "al I1 -90 mv",
+        f.write(deviation.format(channel.records[1].error))        # "al I1 -90 dv",
+        f.write(formatter.format(channel.records[1].uncertainty))  # "I1 -90 uc",
+
+        f.write(formatter.format(channel.records[102].refValue))   # "af I1 -10 av", 
+        f.write(formatter.format(channel.records[102].measValue))  # "af I1 -10 mv",
+        f.write(deviation.format(channel.records[102].error))      # "af I1 -10 dv",
+        f.write(formatter.format(channel.records[2].refValue))     # "al I1 -10 av",
+        f.write(formatter.format(channel.records[2].measValue))    # "al I1 -10 mv",
+        f.write(deviation.format(channel.records[2].error))        # "al I1 -10 dv",
+        f.write(formatter.format(channel.records[2].uncertainty))  # "I1 -10 uc",
+
+        f.write(formatter.format(channel.records[103].refValue))   # "af I1 10 av", 
+        f.write(formatter.format(channel.records[103].measValue))  # "af I1 10 mv",
+        f.write(deviation.format(channel.records[103].error))      # "af I1 10 dv",
+        f.write(formatter.format(channel.records[3].refValue))     # "al I1 10 av",
+        f.write(formatter.format(channel.records[3].measValue))    # "al I1 10 mv",
+        f.write(deviation.format(channel.records[3].error))        # "al I1 10 dv",
+        f.write(formatter.format(channel.records[3].uncertainty))  # "I1 10 uc",
+
+        f.write(formatter.format(channel.records[104].refValue))   # "af I1 90 av", 
+        f.write(formatter.format(channel.records[104].measValue))  # "af I1 90 mv",
+        f.write(deviation.format(channel.records[104].error))      # "af I1 90 dv",
+        f.write(formatter.format(channel.records[4].refValue))     # "al I1 90 av",
+        f.write(formatter.format(channel.records[4].measValue))    # "al I1 90 mv",
+        f.write(deviation.format(channel.records[4].error))        # "al I1 90 dv",
+        f.write(formatter.format(channel.records[4].uncertainty))  # "I1 90 uc",
+
+        # I2
+        formatter = '"{:7.5f} mA",\n'
+        deviation = '"{:.4e} mA",\n'
+        f.write(formatter.format(channel.records[105].refValue))   # "af I2 -90 av", 
+        f.write(formatter.format(channel.records[105].measValue))  # "af I2 -90 mv",
+        f.write(deviation.format(channel.records[105].error))      # "af I2 -90 dv",
+        f.write(formatter.format(channel.records[5].refValue))     # "al I2 -90 av",
+        f.write(formatter.format(channel.records[5].measValue))    # "al I2 -90 mv",
+        f.write(deviation.format(channel.records[5].error))        # "al I2 -90 dv",
+        f.write(formatter.format(channel.records[5].uncertainty))  # "I2 -90 uc",
+
+        formatter = '"{:7.6f} mA",\n'
+        f.write(formatter.format(channel.records[106].refValue))   # "af I2 -10 av", 
+        f.write(formatter.format(channel.records[106].measValue))  # "af I2 -10 mv",
+        f.write(deviation.format(channel.records[106].error))      # "af I2 -10 dv",
+        f.write(formatter.format(channel.records[6].refValue))     # "al I2 -10 av",
+        f.write(formatter.format(channel.records[6].measValue))    # "al I2 -10 mv",
+        f.write(deviation.format(channel.records[6].error))        # "al I2 -10 dv",
+        f.write(formatter.format(channel.records[6].uncertainty))  # "I2 -10 uc",
+
+        f.write(formatter.format(channel.records[107].refValue))   # "af I2 10 av", 
+        f.write(formatter.format(channel.records[107].measValue))  # "af I2 10 mv",
+        f.write(deviation.format(channel.records[107].error))      # "af I2 10 dv",
+        f.write(formatter.format(channel.records[7].refValue))     # "al I2 10 av",
+        f.write(formatter.format(channel.records[7].measValue))    # "al I2 10 mv",
+        f.write(deviation.format(channel.records[7].error))        # "al I2 10 dv",
+        f.write(formatter.format(channel.records[7].uncertainty))  # "I2 10 uc",
+
+        formatter = '"{:7.5f} mA",\n'
+        f.write(formatter.format(channel.records[108].refValue))   # "af I2 90 av", 
+        f.write(formatter.format(channel.records[108].measValue))  # "af I2 90 mv",
+        f.write(deviation.format(channel.records[108].error))      # "af I2 90 dv",
+        f.write(formatter.format(channel.records[8].refValue))     # "al I2 90 av",
+        f.write(formatter.format(channel.records[8].measValue))    # "al I2 90 mv",
+        f.write(deviation.format(channel.records[8].error))        # "al I2 90 dv",
+        f.write(formatter.format(channel.records[8].uncertainty))  # "I2 90 uc",
+
+        # I3
+        formatter = '"{:7.6f} A",\n'
+        deviation = '"{:.4e} A",\n'
+        f.write(formatter.format(channel.records[109].refValue))   # "af I3 -90 av", 
+        f.write(formatter.format(channel.records[109].measValue))  # "af I3 -90 mv",
+        f.write(deviation.format(channel.records[109].error))      # "af I3 -90 dv",
+        f.write(formatter.format(channel.records[9].refValue))     # "al I3 -90 av",
+        f.write(formatter.format(channel.records[9].measValue))    # "al I3 -90 mv",
+        f.write(deviation.format(channel.records[9].error))        # "al I3 -90 dv",
+        f.write(formatter.format(channel.records[9].uncertainty))  # "I3 -90 uc",
+
+        formatter = '"{:7.5f} mA",\n'
+        deviation = '"{:.4e} mA",\n'
+        f.write(formatter.format(channel.records[110].refValue))   # "af I3 -10 av", 
+        f.write(formatter.format(channel.records[110].measValue))  # "af I3 -10 mv",
+        f.write(deviation.format(channel.records[110].error))      # "af I3 -10 dv",
+        f.write(formatter.format(channel.records[10].refValue))     # "al I3 -10 av",
+        f.write(formatter.format(channel.records[10].measValue))    # "al I3 -10 mv",
+        f.write(deviation.format(channel.records[10].error))        # "al I3 -10 dv",
+        f.write(formatter.format(channel.records[10].uncertainty))  # "I3 -10 uc",
+
+        f.write(formatter.format(channel.records[111].refValue))   # "af I3 10 av", 
+        f.write(formatter.format(channel.records[111].measValue))  # "af I3 10 mv",
+        f.write(deviation.format(channel.records[111].error))      # "af I3 10 dv",
+        f.write(formatter.format(channel.records[11].refValue))     # "al I3 10 av",
+        f.write(formatter.format(channel.records[11].measValue))    # "al I3 10 mv",
+        f.write(deviation.format(channel.records[11].error))        # "al I3 10 dv",
+        f.write(formatter.format(channel.records[11].uncertainty))  # "I3 10 uc",
+
+        formatter = '"{:7.6f} A",\n'
+        deviation = '"{:.4e} A",\n'
+        f.write(formatter.format(channel.records[112].refValue))   # "af I3 90 av", 
+        f.write(formatter.format(channel.records[112].measValue))  # "af I3 90 mv",
+        f.write(deviation.format(channel.records[112].error))      # "af I3 90 dv",
+        f.write(formatter.format(channel.records[12].refValue))     # "al I3 90 av",
+        f.write(formatter.format(channel.records[12].measValue))    # "al I3 90 mv",
+        f.write(deviation.format(channel.records[12].error))        # "al I3 90 dv",
+        f.write(formatter.format(channel.records[12].uncertainty))  # "I3 90 uc",
+
+        # I4
+        formatter = '"{:7.6f} A",\n'
+        deviation = '"{:.4e} A",\n'
+        f.write(formatter.format(channel.records[113].refValue))   # "af I4 -90 av", 
+        f.write(formatter.format(channel.records[113].measValue))  # "af I4 -90 mv",
+        f.write(deviation.format(channel.records[113].error))      # "af I4 -90 dv",
+        f.write(formatter.format(channel.records[13].refValue))     # "al I4 -90 av",
+        f.write(formatter.format(channel.records[13].measValue))    # "al I4 -90 mv",
+        f.write(deviation.format(channel.records[13].error))        # "al I4 -90 dv",
+        f.write(formatter.format(channel.records[13].uncertainty))  # "I4 -90 uc",
+
+        f.write(formatter.format(channel.records[114].refValue))   # "af I4 -10 av", 
+        f.write(formatter.format(channel.records[114].measValue))  # "af I4 -10 mv",
+        f.write(deviation.format(channel.records[114].error))      # "af I4 -10 dv",
+        f.write(formatter.format(channel.records[14].refValue))     # "al I4 -10 av",
+        f.write(formatter.format(channel.records[14].measValue))    # "al I4 -10 mv",
+        f.write(deviation.format(channel.records[14].error))        # "al I4 -10 dv",
+        f.write(formatter.format(channel.records[14].uncertainty))  # "I4 -10 uc",
+
+        f.write(formatter.format(channel.records[115].refValue))   # "af I4 10 av", 
+        f.write(formatter.format(channel.records[115].measValue))  # "af I4 10 mv",
+        f.write(deviation.format(channel.records[115].error))      # "af I4 10 dv",
+        f.write(formatter.format(channel.records[15].refValue))     # "al I4 10 av",
+        f.write(formatter.format(channel.records[15].measValue))    # "al I4 10 mv",
+        f.write(deviation.format(channel.records[15].error))        # "al I4 10 dv",
+        f.write(formatter.format(channel.records[15].uncertainty))  # "I4 10 uc",
+
+        f.write(formatter.format(channel.records[116].refValue))   # "af I4 90 av", 
+        f.write(formatter.format(channel.records[116].measValue))  # "af I4 90 mv",
+        f.write(deviation.format(channel.records[116].error))      # "af I4 90 dv",
+        f.write(formatter.format(channel.records[16].refValue))     # "al I4 90 av",
+        f.write(formatter.format(channel.records[16].measValue))    # "al I4 90 mv",
+        f.write(deviation.format(channel.records[16].error))        # "al I4 90 dv",
+        f.write(formatter.format(channel.records[16].uncertainty))  # "I4 90 uc",
+
+        # U
+        formatter = '"{:7.6f} V",\n'
+        deviation = '"{:.4e} V",\n'
+        f.write(formatter.format(channel.records[117].refValue))   # "af U 10 av", 
+        f.write(formatter.format(channel.records[117].measValue))  # "af U 10 mv",
+        f.write(deviation.format(channel.records[117].error))      # "af U 10 dv",
+        f.write(formatter.format(channel.records[17].refValue))     # "al U 10 av",
+        f.write(formatter.format(channel.records[17].measValue))    # "al U 10 mv",
+        f.write(deviation.format(channel.records[17].error))        # "al U 10 dv",
+        f.write(formatter.format(channel.records[17].uncertainty))  # "U 10 uc",
+
+        f.write(formatter.format(channel.records[118].refValue))   # "af U 50 av", 
+        f.write(formatter.format(channel.records[118].measValue))  # "af U 50 mv",
+        f.write(deviation.format(channel.records[118].error))      # "af U 50 dv",
+        f.write(formatter.format(channel.records[18].refValue))     # "al U 50 av",
+        f.write(formatter.format(channel.records[18].measValue))    # "al U 50 mv",
+        f.write(deviation.format(channel.records[18].error))        # "al U 50 dv",
+        f.write(formatter.format(channel.records[18].uncertainty))  # "U 50 uc",
+
+        f.write(formatter.format(channel.records[119].refValue))   # "af U 90 av", 
+        f.write(formatter.format(channel.records[119].measValue))  # "af U 90 mv",
+        f.write(deviation.format(channel.records[119].error))      # "af U 90 dv",
+        f.write(formatter.format(channel.records[19].refValue))     # "al U 90 av",
+        f.write(formatter.format(channel.records[19].measValue))    # "al U 90 mv",
+        f.write(deviation.format(channel.records[19].error))        # "al U 90 dv",
+        f.write(formatter.format(channel.records[19].uncertainty))  # "U 90 uc",
+
+        # T
+        formatter = '"{:5.3f} °C",\n'
+        f.write(formatter.format(channel.records[120].refValue))   # "af T r1 av", 
+        f.write(formatter.format(channel.records[120].measValue))  # "af T r1 mv",
+        f.write(deviation.format(channel.records[120].error))      # "af T r1 dv",
+        f.write(formatter.format(channel.records[20].refValue))     # "al T r1 av",
+        f.write(formatter.format(channel.records[20].measValue))    # "al T r1 mv",
+        f.write(formatter.format(channel.records[20].error))        # "al T r1 dv",
+        f.write(formatter.format(channel.records[20].uncertainty))  # "T r1 uc",
+
+        f.write(formatter.format(channel.records[121].refValue))   # "af T r2 av", 
+        f.write(formatter.format(channel.records[121].measValue))  # "af T r2 mv",
+        f.write(deviation.format(channel.records[121].error))      # "af T r2 dv",
+        f.write(formatter.format(channel.records[21].refValue))     # "al T r2 av",
+        f.write(formatter.format(channel.records[21].measValue))    # "al T r2 mv",
+        f.write(formatter.format(channel.records[21].error))        # "al T r2 dv",
+        f.write(formatter.format(channel.records[21].uncertainty))  # "T r2 uc",
+
+        # Factors
+        formatter = '"{:19.18f}"'
+        f.write(formatter.format(channel.factors['I1']['factor']) + ', ' + formatter.format(channel.factors['I1']['offset']) + ',\n')   # "I1 factor", "I1 offset", 
+        f.write(formatter.format(channel.factors['I2']['factor']) + ', ' + formatter.format(channel.factors['I2']['offset']) + ',\n')   # "I1 factor", "I1 offset", 
+        f.write(formatter.format(channel.factors['I3']['factor']) + ', ' + formatter.format(channel.factors['I3']['offset']) + ',\n')   # "I1 factor", "I1 offset", 
+        f.write(formatter.format(channel.factors['I4']['factor']) + ', ' + formatter.format(channel.factors['I4']['offset']) + ',\n')   # "I1 factor", "I1 offset", 
+        f.write(formatter.format(channel.factors['U']['factor']) + ', ' + formatter.format(channel.factors['U']['offset']) + ',\n')     # "U factor", "U offset", 
+        formatter = '"{:6.5f}"'
+        f.write(formatter.format(channel.factors['T']['factor']) + ', ' + formatter.format(channel.factors['T']['offset']) + ',\n')     # "T factor", "T offset", 
+
+        f.write(')\n\n')
+    # end for
+# end def
+
+
+def writeChannelFunctions(cts, f):
+    for key, channel in cts.channels.items():
+        f.write('#makechannel(' + str(channel.channelNumber) + ', array' + str(channel.channelNumber) + (', lastChannel: true' if cts.numChannels == (channel.channelNumber + 1) else '')+ ')\n')
+    # end for
 # end def
 
 def writeData(settings, cts, template):
@@ -580,10 +792,16 @@ def writeData(settings, cts, template):
     # Write parameters into output file
     writeParameters(settings, cts, f)
 
+    # Write channel data into output file
+    writeChannelArrays(settings, cts, f)
+
     # Write the actual template into the output file
     for line in template:
         f.write(line)
     # end for
+
+    # Write the function calls to create the channel table at the end of the template
+    writeChannelFunctions(cts, f)
 
     f.close()
 # end def
