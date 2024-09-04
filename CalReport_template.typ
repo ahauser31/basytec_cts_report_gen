@@ -256,9 +256,9 @@
       [I4], [5 A (10%)], [#array.at(98)], [#array.at(99)], [#array.at(100)], [#array.at(101)], [#array.at(102)], [#array.at(103)], [#array.at(104)],
       [I4], [5 A (90%)], [#array.at(105)], [#array.at(106)], [#array.at(107)], [#array.at(108)], [#array.at(109)], [#array.at(110)], [#array.at(111)],
 
-      [U], [5 V (10%)], [#array.at(112)], [#array.at(113)], [#array.at(114)], [#array.at(115)], [#array.at(116)], [#array.at(117)], [#array.at(118)],
-      [U], [5 V (50%)], [#array.at(119)], [#array.at(120)], [#array.at(121)], [#array.at(122)], [#array.at(123)], [#array.at(124)], [#array.at(125)],
-      [U], [5 V (90%)], [#array.at(126)], [#array.at(127)], [#array.at(128)], [#array.at(129)], [#array.at(130)], [#array.at(131)], [#array.at(132)],
+      [U], [6 V (10%)], [#array.at(112)], [#array.at(113)], [#array.at(114)], [#array.at(115)], [#array.at(116)], [#array.at(117)], [#array.at(118)],
+      [U], [6 V (50%)], [#array.at(119)], [#array.at(120)], [#array.at(121)], [#array.at(122)], [#array.at(123)], [#array.at(124)], [#array.at(125)],
+      [U], [6 V (90%)], [#array.at(126)], [#array.at(127)], [#array.at(128)], [#array.at(129)], [#array.at(130)], [#array.at(131)], [#array.at(132)],
 
       [T], [Temp Ref1], [#array.at(133)], [#array.at(134)], [#array.at(135)], [#array.at(136)], [#array.at(137)], [#array.at(138)], [#array.at(139)],
       [T], [Temp Ref2], [#array.at(140)], [#array.at(141)], [#array.at(142)], [#array.at(143)], [#array.at(144)], [#array.at(145)], [#array.at(146)]

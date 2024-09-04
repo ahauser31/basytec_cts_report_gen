@@ -4,9 +4,9 @@
 # title				: report_gen.py
 # description		: Read Basytec CTS calibration data and generate a
 #                     Calibration report in typst format
-# date				: 17/08/2024
-# version			: 1.0.0
-# dependencies		: argparse, sys, os, datetime
+# date				: 04/09/2024
+# version			: 1.1.0
+# dependencies		: argparse, sys, os, datetime, configparser, math
 # external deps     : colorful-terminal, pypxlib
 # usage				: Run with -h parameter for help
 # notes				: Quality = abs(error)/tolerance * 100
@@ -16,7 +16,8 @@ import sys
 import os
 import argparse
 import datetime
-# import csv
+import configparser
+from math import sqrt
 from colorful_terminal import colored_print, Fore, Style
 from pypxlib import Table
 
@@ -25,13 +26,46 @@ from pypxlib import Table
 # Constants definitions
 ###############################################################################
 
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 DEFAULT_CHANNELS = 32
 
 SOP_NAME = 'Calibrating BaSyTec Battery Test System'
 SOP_DATE = '5/6/2024'
 SOFTWARE_VERSION = '6.0.16.0'
 
+# Resultion CTS channels - Units: I1 = mA, I2 = mA, I3 = mA, I4 = A, U = V
+CTS_RESOLUTION_I1 = 0.05 / 1000
+CTS_RESOLUTION_I2 = 0.5 / 1000
+CTS_RESOLUTION_I3 = 10 / 1000
+CTS_RESOLUTION_I4 = 0.2 / 1000
+CTS_RESOLUTION_U = 0.3 / 1000
+
+###############################################################################
+# Uncertainty calculations
+# 
+# Source of uncertainty                                     Type and Source                 Prob. Distribution  Coverage Factor     std. uncertainty                sensitivity coefficient     ci * u(xi)
+# Voltage:
+# Uncertainty of multimeter in respective voltage range     B (calibration certificate)     normal              2                   (cert. value/coverage factor)   1                           std. uncertainty * sensitivity coefficient
+# Resolution of channel                                     B (manufacturer)                rectangular         sqrt(3)             (resolution/coverage)           1                           std. uncertainty * sensitivity coefficient
+# Current:
+# Uncertainty of multimeter in respective voltage range     B (calibration certificate)     normal              2                   (cert. value/coverage factor)   1/R                         std. uncertainty * sensitivity coefficient
+# Shunt resistance                                          B (calibration certificate)     normal              2                   (cert. value/coverage factor)   Mean(U)/R^2                 std. uncertainty * sensitivity coefficient
+# Resolution of channel                                     B (manufacturer)                rectangular         sqrt(3)             (resolution/coverage)           1                           std. uncertainty * sensitivity coefficient
+#
+# Type A
+# Voltage readings channel
+# &
+# Voltage readings multimeter
+# 10 (n) readings => get mean value => deviation from mean => sqrt(deviation^2) => sum of sqrt(deviation^2) => sqrt(sum of sqrt(deviation^2)/n-1) = standard deviation
+# estimated standard uncertainty = standard deviation/sqrt(n)
+# standard uncertainty = estimated standard uncertainty / coverage factor (2)
+# component = standard uncertainty * sensitivity coefficient (1)
+#
+# Combined standard uncertainty
+# Voltage: sqrt(std.uncert[resolution]^2 + std.uncert[uncertMultimeter]^2 + (Type A components)^2)
+# Current: sqrt(std.uncert[resolution]^2 + std.uncert[uncertMultimeter]^2 + std.uncert[shunt]^2 + (Type A components)^2)
+#
+# Expanded uncertainty = combined standard uncertainty * 2
 
 ###############################################################################
 # Class definitons
@@ -58,10 +92,16 @@ class Settings:
         self.calByTitle = None
         self.approvedByName = None
         self.approvedByTitle = None
+        self.calEquipmentFile = None
         self.calDateMultimeter = None
         self.calReportMultimeter = None
+        self.calUncertainty100mVMultimeter = None
+        self.calUncertainty1VMultimeter = None
+        self.calUncertainty10VMultimeter = None
         self.calDateCalibrator = None
         self.calReportCalibrator = None
+        self.calUncertaintyCalibrator = None
+        self.calValueMOhmCalibrator = None
         self.outputFile = None
     # end def
 
@@ -90,10 +130,16 @@ class Settings:
             'Approved by (title): ' + self.approvedByTitle + '\n' + \
             'Output file: ' + self.outputFile + '\n' + \
             '------------------------\n' + \
+            'Calibration equipment file: ' + self.calEquipmentFile + '\n' + \
             'Date calibration Multimeter: ' + self.calDateMultimeter.strftime('%d/%m/%Y') + '\n' + \
             'Calibration report number Multimeter: ' + self.calReportMultimeter + '\n' + \
+            'Calibration uncertainty Multimeter 100mV range: ' + str(self.calUncertainty100mVMultimeter) + ' mV\n' + \
+            'Calibration uncertainty Multimeter 1V range: ' + str(self.calUncertainty1VMultimeter) + ' mV\n' + \
+            'Calibration uncertainty Multimeter 10V range: ' + str(self.calUncertainty10VMultimeter) + ' mV\n' + \
             'Date calibration Calibrator: ' + self.calDateCalibrator.strftime('%d/%m/%Y') + '\n' + \
             'Calibration report number Calibrator: ' + self.calReportCalibrator + '\n' + \
+            'Calibration value (resistance) Calibrator: ' + str(self.calValueMOhmCalibrator) + ' mOhm\n' + \
+            'Calibration uncertainty Calibrator: ' + str(self.calUncertaintyCalibrator) + ' mOhm\n' + \
             '------------------------\n' + \
             'Verbose: ' + ('TRUE' if self.verbose else 'FALSE'))
     # end def
@@ -102,6 +148,7 @@ class Settings:
         self.calData = commandLineArgs.caldata
         self.template = commandLineArgs.template
         self.channelFile = commandLineArgs.channelfile
+        self.calEquipmentFile = commandLineArgs.equipment
         if commandLineArgs.numchannels > 0:
             self.numChannels = commandLineArgs.numchannels
         # end if
@@ -158,6 +205,26 @@ class Settings:
         self.calReportCalibrator = input('Enter calibration report number of CTS calibration device: ')
     # end def
 
+    def getCalEquipmentFromFile(self):
+        config = configparser.ConfigParser()
+        config.read(self.calEquipmentFile, encoding='utf-8')
+
+        self.calReportMultimeter = config['Multimeter']['Report']
+        calDateMultimeter = config['Multimeter']['DueDate']
+        tmpDate = calDateMultimeter.split('/')
+        self.calDateMultimeter = datetime.date(int(tmpDate[2]), int(tmpDate[1]), int(tmpDate[0]))
+        self.calUncertainty100mVMultimeter = config['Multimeter'].getfloat('Uncertainty100mV')
+        self.calUncertainty1VMultimeter = config['Multimeter'].getfloat('Uncertainty1V')
+        self.calUncertainty10VMultimeter = config['Multimeter'].getfloat('Uncertainty10V')
+
+        self.calReportCalibrator = config['Calibrator']['Report']
+        calDateCalibrator = config['Calibrator']['DueDate']
+        tmpDate = calDateCalibrator.split('/')
+        self.calDateCalibrator = datetime.date(int(tmpDate[2]), int(tmpDate[1]), int(tmpDate[0]))
+        self.calUncertaintyCalibrator = config['Calibrator'].getfloat('Uncertainty')
+        self.calValueMOhmCalibrator = config['Calibrator'].getfloat('Value')
+    # end def
+
     def getReportNumber(self):
         self.reportNumber = input('Enter report number: ')
     # end def
@@ -179,6 +246,7 @@ class CTS:
 
         self.calData =  Table(settings.calData, px_encoding='cp1252')
         self.channelFile =  Table(settings.channelFile, px_encoding='cp1252')
+        self.settings = settings
     # end def
 
     def __del__(self):
@@ -234,7 +302,7 @@ class CTS:
                     # end if
 
                     # Store record
-                    channel.addRecord((entryNumber if entryNumber < 22 else entryNumber - 21), preMeasurement, tableRow['Ref_value'], tableRow['Meas_value'], tableRow['Error'], tableRow['Tolerance'])
+                    channel.addRecord(self.settings, (entryNumber if entryNumber < 22 else entryNumber - 21), preMeasurement, tableRow['Ref_value'], tableRow['Meas_value'], tableRow['Error'], tableRow['Tolerance'])
                     if abs(tableRow['Error']) > tableRow['Tolerance']:
                         # Channel out of spec
                         channel.setOufOfSpec(preMeasurement, (entryNumber if entryNumber < 22 else entryNumber - 21))
@@ -320,12 +388,94 @@ class CTSChannel:
             self.postOutOfSpec.add(rangeOOS)
     # end def
 
-    def addRecord(self, rangeValue, preMeasurement, refValue, measValue, error, tolerance):
+    def getUncertainty(self, settings, rangeValue, preMeasurement, measValue):
+        if preMeasurement:
+            return None
+        # end if
+
+        shuntInOhm = settings.calValueMOhmCalibrator / 1000
+        if rangeValue == 1 or rangeValue == 2 or rangeValue == 3 or rangeValue == 4:
+            # I1
+            uncertComponentMultimeter = (settings.calUncertainty100mVMultimeter / 2) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / 2) * (measValue / settings.calValueMOhmCalibrator)
+            uncertComponentChannel = CTS_RESOLUTION_I1 / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [mA]
+        # end if
+
+        if rangeValue == 5 or rangeValue == 6 or rangeValue == 7 or rangeValue == 8:
+            # I2
+            uncertComponentMultimeter = (settings.calUncertainty100mVMultimeter / 2) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / 2) * (measValue / settings.calValueMOhmCalibrator)
+            uncertComponentChannel = CTS_RESOLUTION_I2 / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [mA]
+        # end if
+
+        if rangeValue == 9 or rangeValue == 12:
+            # I3, +/- 90%
+            uncertComponentMultimeter = (settings.calUncertainty100mVMultimeter / (2 * 1000)) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / (2 * 1000)) * (measValue / shuntInOhm)
+            uncertComponentChannel = CTS_RESOLUTION_I3 / (sqrt(3) * 1000)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [A]
+        # end if
+        if rangeValue == 10 or rangeValue == 11:
+            # I3, +/- 10%
+            uncertComponentMultimeter = (settings.calUncertainty100mVMultimeter / 2) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / 2) * (measValue / settings.calValueMOhmCalibrator)
+            uncertComponentChannel = CTS_RESOLUTION_I3 / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [mA]
+        # end if
+
+        if rangeValue == 13 or rangeValue == 16:
+            # I4, +/- 90%
+            uncertComponentMultimeter = (settings.calUncertainty1VMultimeter / 2) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / (2 * 1000)) * (measValue / shuntInOhm)
+            uncertComponentChannel = CTS_RESOLUTION_I4 / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [A]
+        # end if
+        if rangeValue == 14 or rangeValue == 15:
+            # I4, +/- 10%
+            uncertComponentMultimeter = (settings.calUncertainty100mVMultimeter / (2 * 1000)) / shuntInOhm
+            uncertComponentShunt = (settings.calUncertaintyCalibrator / (2 * 1000)) * (measValue / shuntInOhm)
+            uncertComponentChannel = CTS_RESOLUTION_I4 / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentShunt * uncertComponentShunt + uncertComponentChannel * uncertComponentChannel)
+            # in [A]
+        # end if
+
+        if rangeValue == 17:
+            # U, 10%
+            uncertComponentMultimeter = (settings.calUncertainty1VMultimeter / 2)
+            uncertComponentChannel = CTS_RESOLUTION_U / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentChannel * uncertComponentChannel)
+            # in [V]
+        # end if
+        if rangeValue == 18 or rangeValue == 19:
+            # U, 50% and 90%
+            uncertComponentMultimeter = (settings.calUncertainty10VMultimeter / 2)
+            uncertComponentChannel = CTS_RESOLUTION_U / sqrt(3)
+            combinedUncertainty = sqrt(uncertComponentMultimeter * uncertComponentMultimeter + uncertComponentChannel * uncertComponentChannel)
+            # in [V]
+        # end if
+
+        if rangeValue == 20 or rangeValue == 21:
+            # temperature tbd
+            combinedUncertainty = 0.0
+        # end if
+
+        return combinedUncertainty * 2
+    # end def
+
+    def addRecord(self, settings, rangeValue, preMeasurement, refValue, measValue, error, tolerance):
         if preMeasurement:
             rangeValue = rangeValue + 100
         # end if
 
-        self.records[rangeValue] = CalRecord(refValue, measValue, error, tolerance, None)
+        uncertainty = self.getUncertainty(settings, rangeValue, preMeasurement, refValue)
+        self.records[rangeValue] = CalRecord(refValue, measValue, error, tolerance, uncertainty)
     # end def
 
     def setFactors(self, i1Factors, i2Factors, i3Factors, i4Factors, uFactors, tFactors):
@@ -384,6 +534,10 @@ def readCommandLineArgs():
                         type=int,
                         default=DEFAULT_CHANNELS,
                         help='Number of test in tests.db [optional parameter, either test number or test name need to be specified]')
+    parser.add_argument('-e',
+                        '--equipment',
+                        required=True,
+                        help='Calibration equipment data [equiptment.ini]')
     parser.add_argument('-t',
                         '--template',
                         required=True,
@@ -408,20 +562,23 @@ def initAndLoadSettings():
             raise ValueError('File not found: ' + settings.calData)
         if not os.path.isfile(settings.template):
             raise ValueError('File not found: ' + settings.template)
+        if not os.path.isfile(settings.calEquipmentFile):
+            raise ValueError('File not found: ' + settings.calEquipmentFile)
 
         # Get additional settings from user
         colored_print(Fore.BLUE + '\n-- Basytec report generator --')
+        settings.getCalEquipmentFromFile()
         settings.getReportNumber()
         settings.getSerial()
         settings.getReceivedDate()
         settings.getCalDate()
         settings.getClientDetails()
         settings.getCalStaff()
-        settings.getCalEquipment()
+        # settings.getCalEquipment()
         settings.setOutputFile()
     except Exception as error:
-        colored_print(Fore.RED + 'ERROR: ' + error.args[0])
-        sys.exit(1)
+         colored_print(Fore.RED + 'ERROR: ' + error.args[0])
+         sys.exit(1)
     # end exception
 
     if settings.verbose:
