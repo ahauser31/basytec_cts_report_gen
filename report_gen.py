@@ -4,8 +4,8 @@
 # title				: report_gen.py
 # description		: Read Basytec CTS calibration data and generate a
 #                     Calibration report in typst format
-# date				: 04/09/2024
-# version			: 1.1.0
+# date				: 11/09/2024
+# version			: 1.1.1
 # dependencies		: argparse, sys, os, datetime, configparser, math
 # external deps     : colorful-terminal, pypxlib
 # usage				: Run with -h parameter for help
@@ -26,10 +26,10 @@ from pypxlib import Table
 # Constants definitions
 ###############################################################################
 
-VERSION = '1.1.0'
+VERSION = '1.1.1'
 DEFAULT_CHANNELS = 32
 
-SOP_NAME = 'Calibrating BaSyTec Battery Test System'
+SOP_NAME = 'ABTF-SOP-CAL-005 Calibration BaSyTec CTS'
 SOP_DATE = '5/6/2024'
 SOFTWARE_VERSION = '6.0.16.0'
 
@@ -463,7 +463,7 @@ class CTSChannel:
 
         if rangeValue == 20 or rangeValue == 21:
             # temperature tbd
-            combinedUncertainty = 0.0
+            combinedUncertainty = 0.25
         # end if
 
         return combinedUncertainty * 2
@@ -733,7 +733,8 @@ def writeChannelArrays(settings, cts, f):
 
         # I1
         formatter = '"{:7.6f} mA",\n'
-        deviation = '"{:.4e} mA",\n'
+        # deviation = '"{:.4e} mA",\n'
+        deviation = '"{:.6f} mA",\n'
         f.write(formatter.format(channel.records[101].refValue))   # "af I1 -90 av", 
         f.write(formatter.format(channel.records[101].measValue))  # "af I1 -90 mv",
         f.write(deviation.format(channel.records[101].error))      # "af I1 -90 dv",
@@ -768,7 +769,8 @@ def writeChannelArrays(settings, cts, f):
 
         # I2
         formatter = '"{:7.5f} mA",\n'
-        deviation = '"{:.4e} mA",\n'
+        # deviation = '"{:.4e} mA",\n'
+        deviation = '"{:.6f} mA",\n'
         f.write(formatter.format(channel.records[105].refValue))   # "af I2 -90 av", 
         f.write(formatter.format(channel.records[105].measValue))  # "af I2 -90 mv",
         f.write(deviation.format(channel.records[105].error))      # "af I2 -90 dv",
@@ -805,7 +807,8 @@ def writeChannelArrays(settings, cts, f):
 
         # I3
         formatter = '"{:7.6f} A",\n'
-        deviation = '"{:.4e} A",\n'
+        # deviation = '"{:.4e} A",\n'
+        deviation = '"{:.6f} A",\n'
         f.write(formatter.format(channel.records[109].refValue))   # "af I3 -90 av", 
         f.write(formatter.format(channel.records[109].measValue))  # "af I3 -90 mv",
         f.write(deviation.format(channel.records[109].error))      # "af I3 -90 dv",
@@ -815,7 +818,8 @@ def writeChannelArrays(settings, cts, f):
         f.write(formatter.format(channel.records[9].uncertainty))  # "I3 -90 uc",
 
         formatter = '"{:7.5f} mA",\n'
-        deviation = '"{:.4e} mA",\n'
+        # deviation = '"{:.4e} mA",\n'
+        deviation = '"{:.6f} mA",\n'
         f.write(formatter.format(channel.records[110].refValue))   # "af I3 -10 av", 
         f.write(formatter.format(channel.records[110].measValue))  # "af I3 -10 mv",
         f.write(deviation.format(channel.records[110].error))      # "af I3 -10 dv",
@@ -833,7 +837,8 @@ def writeChannelArrays(settings, cts, f):
         f.write(formatter.format(channel.records[11].uncertainty))  # "I3 10 uc",
 
         formatter = '"{:7.6f} A",\n'
-        deviation = '"{:.4e} A",\n'
+        # deviation = '"{:.4e} A",\n'
+        deviation = '"{:.6f} A",\n'
         f.write(formatter.format(channel.records[112].refValue))   # "af I3 90 av", 
         f.write(formatter.format(channel.records[112].measValue))  # "af I3 90 mv",
         f.write(deviation.format(channel.records[112].error))      # "af I3 90 dv",
@@ -844,7 +849,8 @@ def writeChannelArrays(settings, cts, f):
 
         # I4
         formatter = '"{:7.6f} A",\n'
-        deviation = '"{:.4e} A",\n'
+        # deviation = '"{:.4e} A",\n'
+        deviation = '"{:.6f} A",\n'
         f.write(formatter.format(channel.records[113].refValue))   # "af I4 -90 av", 
         f.write(formatter.format(channel.records[113].measValue))  # "af I4 -90 mv",
         f.write(deviation.format(channel.records[113].error))      # "af I4 -90 dv",
@@ -879,7 +885,8 @@ def writeChannelArrays(settings, cts, f):
 
         # U
         formatter = '"{:7.6f} V",\n'
-        deviation = '"{:.4e} V",\n'
+        # deviation = '"{:.4e} V",\n'
+        deviation = '"{:.6f} V",\n'
         f.write(formatter.format(channel.records[117].refValue))   # "af U 10 av", 
         f.write(formatter.format(channel.records[117].measValue))  # "af U 10 mv",
         f.write(deviation.format(channel.records[117].error))      # "af U 10 dv",
@@ -906,6 +913,7 @@ def writeChannelArrays(settings, cts, f):
 
         # T
         formatter = '"{:5.3f} °C",\n'
+        deviation = '"{:.4f} V",\n'
         f.write(formatter.format(channel.records[120].refValue))   # "af T r1 av", 
         f.write(formatter.format(channel.records[120].measValue))  # "af T r1 mv",
         f.write(deviation.format(channel.records[120].error))      # "af T r1 dv",

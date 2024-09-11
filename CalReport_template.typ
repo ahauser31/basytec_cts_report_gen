@@ -406,7 +406,7 @@
 
 #v(10pt)
 //#set text(size: 10pt)
-The Advanced Remanufacturing and Technology Centre confirms the UUT has been calibrated under the environmental conditions as stated above. The expanded measurement uncertainties are estimated at a level of confidence of approximately 95% with a coverage factor of k ≈ 2. Calibration is performed with equipment directly traceable to the Singapore national standards. Principles and methods of calibration correspond with ISO/IEC 17025. This calibration certificate shall not be reproduced in part or in full without the written approval of the Advanced Remanufacturing and Technology Centre. Calibration reports without signatures are not valid. The user is advised to have the object recalibrated at appropriate intervals.
+The Advanced Remanufacturing and Technology Centre confirms the UUT has been calibrated under the environmental conditions as stated above. The expanded measurement uncertainties are estimated at a level of confidence of approximately 95% with a coverage factor of k ≈ 2. Calibration is performed with equipment directly traceable to the Singapore national standards. Principles and methods of calibration correspond with ISO/IEC 17025. This calibration report shall not be reproduced in part or in full without the written approval of the Advanced Remanufacturing and Technology Centre. Calibration reports without signatures are not valid. The user is advised to have the object recalibrated at appropriate intervals.
 
 #v(10pt)
 //#set text(size: 10pt)
