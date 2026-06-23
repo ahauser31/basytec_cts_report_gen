@@ -17,6 +17,10 @@
 #let tester_serial = [CTS.X.15.00.0724]
 #let tester_id = [724]
 
+#let volt_range10 = [6 V (10%)]
+#let volt_range50 = [6 V (50%)]
+#let volt_range90 = [6 V (90%)]
+
 #let date_received = [03/08/2024]
 #let date_calibrated = [03/08/2024]
 #let date_recommended = [03/08/2025]
@@ -222,6 +226,7 @@
 // START OF TEMPLATE
 
 #let astar_blue = color.rgb("#003087")
+#let astar_red = color.rgb("#DA291C")
 
 #let makechannel(number, array, lastChannel: false) = {
   [
@@ -231,37 +236,37 @@
     #set text(size: 8pt)
     #v(6pt)
     #table(
-      columns: (auto, auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr),
-      align: (center, center, right, right, right, right, right, right, right),
+      columns: (auto, auto, auto, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr, 1fr),
+      align: (center, center, right, right, right, right, right, right, right, right),
       stroke: 0.5pt,
-      table.cell(rowspan: 2, [*Value*]), table.cell(rowspan: 2, [*Range*]), table.cell(colspan: 3, align: center, [*As Found*]), table.cell(colspan: 3, align: center, [*As Left*]), table.cell(rowspan: 2, align: center, [*Uncertainty \ (95%, k ≈ 2)*]),table.cell(align: center, [*Applied Value*]), table.cell(align: center, [*Measured Value*]), table.cell(align: center, [*Deviation*]), table.cell(align: center, [*Applied Value*]), table.cell(align: center, [*Measured Value*]), table.cell(align: center, [*Deviation*]),
+      table.cell(rowspan: 2, [*Value*]), table.cell(rowspan: 2, [*Range*]), table.cell(rowspan: 2, [*Tolerance*]), table.cell(colspan: 3, align: center, [*As Found*]), table.cell(colspan: 3, align: center, [*As Left*]), table.cell(rowspan: 2, align: center, [*Uncertainty \ (95%, k ≈ 2)*]),table.cell(align: center, [*Applied Value*]), table.cell(align: center, [*Measured Value*]), table.cell(align: center, [*Deviation*]), table.cell(align: center, [*Applied Value*]), table.cell(align: center, [*Measured Value*]), table.cell(align: center, [*Deviation*]),
 
-      [I1], [-1 mA (90%)], [#array.at(0)], [#array.at(1)], [#array.at(2)], [#array.at(3)], [#array.at(4)], [#array.at(5)], [#array.at(6)],
-      [I1], [-1 mA (10%)], [#array.at(7)], [#array.at(8)], [#array.at(9)], [#array.at(10)], [#array.at(11)], [#array.at(12)], [#array.at(13)],
-      [I1], [1 mA (10%)], [#array.at(14)], [#array.at(15)], [#array.at(16)], [#array.at(17)], [#array.at(18)], [#array.at(19)], [#array.at(20)],
-      [I1], [1 mA (90%)], [#array.at(21)], [#array.at(22)], [#array.at(23)], [#array.at(24)], [#array.at(25)], [#array.at(26)], [#array.at(27)],
+      [I1], [-1 mA (90%)], [0.0002 mA], [#array.at(0)], [#array.at(1)], [#array.at(2)], [#array.at(3)], [#array.at(4)], [#array.at(5)], [#array.at(6)],
+      [I1], [-1 mA (10%)], [0.0002 mA], [#array.at(7)], [#array.at(8)], [#array.at(9)], [#array.at(10)], [#array.at(11)], [#array.at(12)], [#array.at(13)],
+      [I1], [1 mA (10%)], [0.0002 mA], [#array.at(14)], [#array.at(15)], [#array.at(16)], [#array.at(17)], [#array.at(18)], [#array.at(19)], [#array.at(20)],
+      [I1], [1 mA (90%)], [0.000 2mA], [#array.at(21)], [#array.at(22)], [#array.at(23)], [#array.at(24)], [#array.at(25)], [#array.at(26)], [#array.at(27)],
 
-      [I2], [-15 mA (90%)], [#array.at(28)], [#array.at(29)], [#array.at(30)], [#array.at(31)], [#array.at(32)], [#array.at(33)], [#array.at(34)],
-      [I2], [-15 mA (10%)], [#array.at(35)], [#array.at(36)], [#array.at(37)], [#array.at(38)], [#array.at(39)], [#array.at(40)], [#array.at(41)],
-      [I2], [15 mA (10%)], [#array.at(42)], [#array.at(43)], [#array.at(44)], [#array.at(45)], [#array.at(46)], [#array.at(47)], [#array.at(48)],
-      [I2], [15 mA (90%)], [#array.at(49)], [#array.at(50)], [#array.at(51)], [#array.at(52)], [#array.at(53)], [#array.at(54)], [#array.at(55)],
+      [I2], [-15 mA (90%)], [0.0025 mA], [#array.at(28)], [#array.at(29)], [#array.at(30)], [#array.at(31)], [#array.at(32)], [#array.at(33)], [#array.at(34)],
+      [I2], [-15 mA (10%)], [0.0025 mA], [#array.at(35)], [#array.at(36)], [#array.at(37)], [#array.at(38)], [#array.at(39)], [#array.at(40)], [#array.at(41)],
+      [I2], [15 mA (10%)], [0.0025 mA], [#array.at(42)], [#array.at(43)], [#array.at(44)], [#array.at(45)], [#array.at(46)], [#array.at(47)], [#array.at(48)],
+      [I2], [15 mA (90%)], [0.0025 mA], [#array.at(49)], [#array.at(50)], [#array.at(51)], [#array.at(52)], [#array.at(53)], [#array.at(54)], [#array.at(55)],
 
-      [I3], [-300 mA (90%)], [#array.at(56)], [#array.at(57)], [#array.at(58)], [#array.at(59)], [#array.at(60)], [#array.at(61)], [#array.at(62)],
-      [I3], [-300 mA (10%)], [#array.at(63)], [#array.at(64)], [#array.at(65)], [#array.at(66)], [#array.at(67)], [#array.at(68)], [#array.at(69)],
-      [I3], [300 mA (10%)], [#array.at(70)], [#array.at(71)], [#array.at(72)], [#array.at(73)], [#array.at(74)], [#array.at(75)], [#array.at(76)],
-      [I3], [300 mA (90%)], [#array.at(77)], [#array.at(78)], [#array.at(79)], [#array.at(80)], [#array.at(81)], [#array.at(82)], [#array.at(83)],
+      [I3], [-300 mA (90%)], [0.00005 A], [#array.at(56)], [#array.at(57)], [#array.at(58)], [#array.at(59)], [#array.at(60)], [#array.at(61)], [#array.at(62)],
+      [I3], [-300 mA (10%)], [0.05 mA], [#array.at(63)], [#array.at(64)], [#array.at(65)], [#array.at(66)], [#array.at(67)], [#array.at(68)], [#array.at(69)],
+      [I3], [300 mA (10%)], [0.05 mA], [#array.at(70)], [#array.at(71)], [#array.at(72)], [#array.at(73)], [#array.at(74)], [#array.at(75)], [#array.at(76)],
+      [I3], [300 mA (90%)], [0.00005 A], [#array.at(77)], [#array.at(78)], [#array.at(79)], [#array.at(80)], [#array.at(81)], [#array.at(82)], [#array.at(83)],
 
-      [I4], [-5 A (90%)], [#array.at(84)], [#array.at(85)], [#array.at(86)], [#array.at(87)], [#array.at(88)], [#array.at(89)], [#array.at(90)],
-      [I4], [-5 A (10%)], [#array.at(91)], [#array.at(92)], [#array.at(93)], [#array.at(94)], [#array.at(95)], [#array.at(96)], [#array.at(97)],
-      [I4], [5 A (10%)], [#array.at(98)], [#array.at(99)], [#array.at(100)], [#array.at(101)], [#array.at(102)], [#array.at(103)], [#array.at(104)],
-      [I4], [5 A (90%)], [#array.at(105)], [#array.at(106)], [#array.at(107)], [#array.at(108)], [#array.at(109)], [#array.at(110)], [#array.at(111)],
+      [I4], [-5 A (90%)], [0.001 A], [#array.at(84)], [#array.at(85)], [#array.at(86)], [#array.at(87)], [#array.at(88)], [#array.at(89)], [#array.at(90)],
+      [I4], [-5 A (10%)], [0.001 A], [#array.at(91)], [#array.at(92)], [#array.at(93)], [#array.at(94)], [#array.at(95)], [#array.at(96)], [#array.at(97)],
+      [I4], [5 A (10%)], [0.001 A], [#array.at(98)], [#array.at(99)], [#array.at(100)], [#array.at(101)], [#array.at(102)], [#array.at(103)], [#array.at(104)],
+      [I4], [5 A (90%)], [0.001 A], [#array.at(105)], [#array.at(106)], [#array.at(107)], [#array.at(108)], [#array.at(109)], [#array.at(110)], [#array.at(111)],
 
-      [U], [6 V (10%)], [#array.at(112)], [#array.at(113)], [#array.at(114)], [#array.at(115)], [#array.at(116)], [#array.at(117)], [#array.at(118)],
-      [U], [6 V (50%)], [#array.at(119)], [#array.at(120)], [#array.at(121)], [#array.at(122)], [#array.at(123)], [#array.at(124)], [#array.at(125)],
-      [U], [6 V (90%)], [#array.at(126)], [#array.at(127)], [#array.at(128)], [#array.at(129)], [#array.at(130)], [#array.at(131)], [#array.at(132)],
+      [U], [6 V (10%)], [0.001 V], [#array.at(112)], [#array.at(113)], [#array.at(114)], [#array.at(115)], [#array.at(116)], [#array.at(117)], [#array.at(118)],
+      [U], [6 V (50%)], [0.001 V], [#array.at(119)], [#array.at(120)], [#array.at(121)], [#array.at(122)], [#array.at(123)], [#array.at(124)], [#array.at(125)],
+      [U], [6 V (90%)], [0.001 V], [#array.at(126)], [#array.at(127)], [#array.at(128)], [#array.at(129)], [#array.at(130)], [#array.at(131)], [#array.at(132)],
 
-      [T], [Temp Ref1], [#array.at(133)], [#array.at(134)], [#array.at(135)], [#array.at(136)], [#array.at(137)], [#array.at(138)], [#array.at(139)],
-      [T], [Temp Ref2], [#array.at(140)], [#array.at(141)], [#array.at(142)], [#array.at(143)], [#array.at(144)], [#array.at(145)], [#array.at(146)]
+      [T], [Temp Ref1], [2.0 °C], [#array.at(133)], [#array.at(134)], [#array.at(135)], [#array.at(136)], [#array.at(137)], [#array.at(138)], [#array.at(139)],
+      [T], [Temp Ref2], [2.0 °C], [#array.at(140)], [#array.at(141)], [#array.at(142)], [#array.at(143)], [#array.at(144)], [#array.at(145)], [#array.at(146)]
     )
     #v(18pt)
     #text(size: 10pt, [*Calibration settings*])
